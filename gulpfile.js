@@ -888,8 +888,8 @@ gulp.task('sortRequires', function() {
 });
 
 gulp.task('convertToModules', function() {
-    var noModulesRegex = /[\s\S]*?define\(function\(\)/;
     var requiresRegex = /([\s\S]*?(define|defineSuite|require)\((?:{[\s\S]*}, )?\[)([\S\s]*?)]([\s\S]*?function\s*)\(([\S\s]*?)\) {([\s\S]*)/;
+    var noModulesRegex = /([\s\S]*?(define|defineSuite|require)\((?:{[\s\S]*}, )?\[?)([\S\s]*?)]?([\s\S]*?function\s*)\(([\S\s]*?)\) {([\s\S]*)/;
     var splitRegex = /,\s*/;
 
     var fsReadFile = Promise.promisify(fs.readFile);
@@ -906,10 +906,11 @@ gulp.task('convertToModules', function() {
             var result = requiresRegex.exec(contents);
 
             if (result === null) {
-                if (!noModulesRegex.test(contents)) {
+                result = noModulesRegex.exec(contents);
+                if (result === null) {
                     console.log(file + ' does not have the expected syntax.');
+                    return;
                 }
-                return;
             }
 
             var names = result[3].split(splitRegex);
