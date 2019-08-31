@@ -6,6 +6,9 @@ module.exports = {
         amd: true,
         browser: true
     },
+    parserOptions: {
+        // sourceType: 'module'
+    },
     rules: {
         'no-implicit-globals': 'error'
     }

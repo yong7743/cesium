@@ -1142,39 +1142,20 @@ define([\n' +
 }
 
 function createCesiumJs() {
-    var moduleIds = [];
-    var parameters = [];
-    var assignments = [];
-
-    var nonIdentifierRegexp = /[^0-9a-zA-Z_$]/g;
-
+    var contents = '';
     globby.sync(sourceFiles).forEach(function(file) {
         file = path.relative('Source', file);
+
         var moduleId = file;
         moduleId = filePathToModuleId(moduleId);
 
-        var assignmentName = "['" + path.basename(file, path.extname(file)) + "']";
+        var assignmentName = path.basename(file, path.extname(file));
         if (moduleId.indexOf('Shaders/') === 0) {
-            assignmentName = '._shaders' + assignmentName;
+            assignmentName = '_shaders' + assignmentName;
         }
-
-        var parameterName = moduleId.replace(nonIdentifierRegexp, '_');
-
-        moduleIds.push("'./" + moduleId + "'");
-        parameters.push(parameterName);
-        assignments.push('Cesium' + assignmentName + ' = ' + parameterName + ';');
+        assignmentName = assignmentName.replace(/(\.|-)/g, '_');
+        contents += 'export { ' + assignmentName + " } from './" + moduleId + ".js';" + os.EOL;
     });
-
-    var contents = '\
-define([' + moduleIds.join(', ') + '], function(' + parameters.join(', ') + ') {\n\
-  \'use strict\';\n\
-  var Cesium = {\n\
-    VERSION : \'' + version + '\',\n\
-    _shaders : {}\n\
-  };\n\
-  ' + assignments.join('\n  ') + '\n\
-  return Cesium;\n\
-});\n';
 
     fs.writeFileSync('Source/Cesium.js', contents);
 }
