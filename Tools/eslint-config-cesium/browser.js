@@ -7,7 +7,7 @@ module.exports = {
         browser: true
     },
     parserOptions: {
-        // sourceType: 'module'
+        sourceType: 'module'
     },
     rules: {
         'no-implicit-globals': 'error'

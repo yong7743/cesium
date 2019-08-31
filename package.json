@@ -74,6 +74,7 @@
     "yargs": "^14.0.0"
   },
   "scripts": {
+    "convertToModules": "gulp convertToModules",
     "start": "node server.js",
     "startPublic": "node server.js --public",
     "build": "gulp build",
@@ -86,7 +87,7 @@
     "coverage": "gulp coverage",
     "requirejs": "gulp requirejs",
     "generateDocumentation": "gulp generateDocumentation",
-    "eslint": "eslint \"./**/*.js\" \"./**/*.html\" --cache --quiet",
+    "eslint": "eslint \"Source/**/*.js\" --cache --quiet",
     "makeZipFile": "gulp makeZipFile",
     "minify": "gulp minify",
     "minifyRelease": "gulp minifyRelease",

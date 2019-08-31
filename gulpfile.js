@@ -775,9 +775,6 @@ gulp.task('sortRequires', function() {
 
     var files = globby.sync(filesToSortRequires);
     return Promise.map(files, function(file) {
-        if(!file.startsWith('Source')){
-            return;
-        }
 
         return fsReadFile(file).then(function(contents) {
 
@@ -852,6 +849,106 @@ gulp.task('sortRequires', function() {
             // Convert back to separate lists for the names and identifiers, and add
             // any additional names or identifiers that don't have a corresponding pair.
             var sortedNames = requires.map(function(item) {
+                return item.name;
+            });
+            for (i = sortedNames.length; i < names.length; ++i) {
+                sortedNames.push(names[i].trim());
+            }
+
+            var sortedIdentifiers = requires.map(function(item) {
+                return item.identifier;
+            });
+            for (i = sortedIdentifiers.length; i < identifiers.length; ++i) {
+                sortedIdentifiers.push(identifiers[i].trim());
+            }
+
+            var outputNames = ']';
+            if (sortedNames.length > 0) {
+                outputNames = os.EOL + '        ' +
+                              sortedNames.join(',' + os.EOL + '        ') +
+                              os.EOL + '    ]';
+            }
+
+            var outputIdentifiers = '(';
+            if (sortedIdentifiers.length > 0) {
+                outputIdentifiers = '(' + os.EOL + '        ' +
+                                    sortedIdentifiers.join(',' + os.EOL + '        ');
+            }
+
+            contents = result[1] +
+                       outputNames +
+                       result[4].replace(/^[,\s]+/, ', ').trim() +
+                       outputIdentifiers +
+                       ') {' +
+                       result[6];
+
+            return fsWriteFile(file, contents);
+        });
+    });
+});
+
+gulp.task('convertToModules', function() {
+    var noModulesRegex = /[\s\S]*?define\(function\(\)/;
+    var requiresRegex = /([\s\S]*?(define|defineSuite|require)\((?:{[\s\S]*}, )?\[)([\S\s]*?)]([\s\S]*?function\s*)\(([\S\s]*?)\) {([\s\S]*)/;
+    var splitRegex = /,\s*/;
+
+    var fsReadFile = Promise.promisify(fs.readFile);
+    var fsWriteFile = Promise.promisify(fs.writeFile);
+
+    var files = globby.sync(filesToSortRequires);
+    return Promise.map(files, function(file) {
+        if(!file.startsWith('Source')){
+            return;
+        }
+
+        return fsReadFile(file).then(function(contents) {
+
+            var result = requiresRegex.exec(contents);
+
+            if (result === null) {
+                if (!noModulesRegex.test(contents)) {
+                    console.log(file + ' does not have the expected syntax.');
+                }
+                return;
+            }
+
+            var names = result[3].split(splitRegex);
+            if (names.length === 1 && names[0].trim() === '') {
+                names.length = 0;
+            }
+
+            var i;
+            for (i = 0; i < names.length; ++i) {
+                if (names[i].indexOf('//') >= 0 || names[i].indexOf('/*') >= 0) {
+                    console.log(file + ' contains comments in the require list.  Skipping so nothing gets broken.');
+                    return;
+                }
+            }
+
+            var identifiers = result[5].split(splitRegex);
+            if (identifiers.length === 1 && identifiers[0].trim() === '') {
+                identifiers.length = 0;
+            }
+
+            for (i = 0; i < identifiers.length; ++i) {
+                if (identifiers[i].indexOf('//') >= 0 || identifiers[i].indexOf('/*') >= 0) {
+                    console.log(file + ' contains comments in the require list.  Skipping so nothing gets broken.');
+                    return;
+                }
+            }
+
+            var requires = [];
+
+            for (i = 0; i < names.length && i < identifiers.length; ++i) {
+                requires.push({
+                    name : names[i].trim(),
+                    identifier : identifiers[i].trim()
+                });
+            }
+
+            // Convert back to separate lists for the names and identifiers, and add
+            // any additional names or identifiers that don't have a corresponding pair.
+            var sortedNames = requires.map(function(item) {
                 return item.name.slice(0, -1) + '.js\'';
             });
             for (i = sortedNames.length; i < names.length; ++i) {
@@ -876,8 +973,8 @@ gulp.task('sortRequires', function() {
             var returnIndex = codeAndReturn.lastIndexOf('return');
 
             var code = codeAndReturn.slice(0, returnIndex);
-            code = code.trim().replace("'use strict';", '');
-            contents += code + os.EOL + os.EOL;
+            code = code.trim().replace("'use strict';" + os.EOL, '');
+            contents += code + os.EOL;
 
             var returnStatement = codeAndReturn.slice(returnIndex);
             contents += returnStatement.split(';')[0].replace('return ', 'export default ') + ';' + os.EOL;
