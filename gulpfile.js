@@ -76,6 +76,7 @@ var filesToClean = ['Source/Cesium.js',
                     'Cesium-*.zip'];
 
 var filesToSortRequires = ['Source/**/*.js',
+                           '!Source/main.js',
                            '!Source/Shaders/**',
                            '!Source/ThirdParty/**',
                            '!Source/Workers/cesiumWorkerBootstrapper.js',
@@ -774,6 +775,9 @@ gulp.task('sortRequires', function() {
 
     var files = globby.sync(filesToSortRequires);
     return Promise.map(files, function(file) {
+        if(!file.startsWith('Source')){
+            return;
+        }
 
         return fsReadFile(file).then(function(contents) {
 
@@ -848,7 +852,7 @@ gulp.task('sortRequires', function() {
             // Convert back to separate lists for the names and identifiers, and add
             // any additional names or identifiers that don't have a corresponding pair.
             var sortedNames = requires.map(function(item) {
-                return item.name;
+                return item.name.slice(0, -1) + '.js\'';
             });
             for (i = sortedNames.length; i < names.length; ++i) {
                 sortedNames.push(names[i].trim());
@@ -861,25 +865,22 @@ gulp.task('sortRequires', function() {
                 sortedIdentifiers.push(identifiers[i].trim());
             }
 
-            var outputNames = ']';
+            contents = '';
             if (sortedNames.length > 0) {
-                outputNames = os.EOL + '        ' +
-                              sortedNames.join(',' + os.EOL + '        ') +
-                              os.EOL + '    ]';
+                for (var q = 0; q < sortedNames.length; q++) {
+                    contents += 'import ' + sortedIdentifiers[q] + ' from ' + sortedNames[q] + ';' + os.EOL;
+                }
             }
 
-            var outputIdentifiers = '(';
-            if (sortedIdentifiers.length > 0) {
-                outputIdentifiers = '(' + os.EOL + '        ' +
-                                    sortedIdentifiers.join(',' + os.EOL + '        ');
-            }
+            var codeAndReturn = result[6];
+            var returnIndex = codeAndReturn.lastIndexOf('return');
 
-            contents = result[1] +
-                       outputNames +
-                       result[4].replace(/^[,\s]+/, ', ').trim() +
-                       outputIdentifiers +
-                       ') {' +
-                       result[6];
+            var code = codeAndReturn.slice(0, returnIndex);
+            code = code.trim().replace("'use strict';", '');
+            contents += code + os.EOL + os.EOL;
+
+            var returnStatement = codeAndReturn.slice(returnIndex);
+            contents += returnStatement.split(';')[0].replace('return ', 'export default ') + ';' + os.EOL;
 
             return fsWriteFile(file, contents);
         });
