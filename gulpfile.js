@@ -775,6 +775,10 @@ gulp.task('sortRequires', function() {
     var files = globby.sync(filesToSortRequires);
     return Promise.map(files, function(file) {
 
+        if (!file.endsWith('Spec.js')) {
+            return;
+        }
+
         return fsReadFile(file).then(function(contents) {
 
             var result = requiresRegex.exec(contents);
@@ -874,12 +878,17 @@ gulp.task('sortRequires', function() {
                                     sortedIdentifiers.join(',' + os.EOL + '        ');
             }
 
-            contents = result[1] +
+            var codeBody = result[6].replace(/'use strict';/gi, '');
+
+            contents = result[1].replace('defineSuite', 'define') +
                        outputNames +
                        result[4].replace(/^[,\s]+/, ', ').trim() +
                        outputIdentifiers +
-                       ') {' +
-                       result[6];
+                       ') {' + os.EOL +
+                       '        \'use strict\';' + os.EOL + os.EOL +
+                       'describe(' + sortedNames[0] + ', function() {' + os.EOL +
+                       codeBody +
+                       '});' + os.EOL;
 
             return fsWriteFile(file, contents);
         });
