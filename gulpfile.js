@@ -970,15 +970,23 @@ gulp.task('convertToModules', function() {
                 }
             }
 
+            var code;
             var codeAndReturn = result[6];
-            var returnIndex = codeAndReturn.lastIndexOf('return');
+            if (file.endsWith('Spec.js')) {
+                var indi = codeAndReturn.lastIndexOf('});');
+                code = codeAndReturn.slice(0, indi);
+                code = code.trim().replace("'use strict';" + os.EOL, '');
+                contents += code + os.EOL;
+            } else {
+                var returnIndex = codeAndReturn.lastIndexOf('return');
 
-            var code = codeAndReturn.slice(0, returnIndex);
-            code = code.trim().replace("'use strict';" + os.EOL, '');
-            contents += code + os.EOL;
+                code = codeAndReturn.slice(0, returnIndex);
+                code = code.trim().replace("'use strict';" + os.EOL, '');
+                contents += code + os.EOL;
 
-            var returnStatement = codeAndReturn.slice(returnIndex);
-            contents += returnStatement.split(';')[0].replace('return ', 'export default ') + ';' + os.EOL;
+                var returnStatement = codeAndReturn.slice(returnIndex);
+                contents += returnStatement.split(';')[0].replace('return ', 'export default ') + ';' + os.EOL;
+            }
 
             return fsWriteFile(file, contents);
         });
