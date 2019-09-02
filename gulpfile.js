@@ -897,7 +897,7 @@ gulp.task('convertToModules', function() {
 
     var files = globby.sync(filesToSortRequires);
     return Promise.map(files, function(file) {
-        if(!file.startsWith('Source')){
+        if(!file.startsWith('Source') && !file.startsWith('Specs')){
             return;
         }
 
