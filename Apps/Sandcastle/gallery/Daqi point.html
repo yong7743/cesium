@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <meta name="description" content="Create 3D models using glTF.">
+    <meta name="cesium-sandcastle-labels" content="Tutorials,Showcases,New in 1.61">
+    <title>Cesium Demo</title>
+    <script type="text/javascript" src="../Sandcastle-header.js"></script>
+    <script type="text/javascript" src="../../../ThirdParty/requirejs-2.1.20/require.js"></script>
+    <script type="text/javascript">
+        if(typeof require === 'function') {
+            require.config({
+                baseUrl : '../../../Source',
+                waitSeconds : 120
+            });
+        }
+    </script>
+</head>
+<body class="sandcastle-loading" data-sandcastle-bucket="bucket-requirejs.html">
+<style>
+    @import url(../templates/bucket.css);
+</style>
+<div id="cesiumContainer" class="fullSize"></div>
+<div id="loadingOverlay"><h1>Loading...</h1></div>
+<div id="toolbar"></div>
+<script id="cesium_sandcastle_script">
+function startup(Cesium) {
+    'use strict';
+//Sandcastle_Begin
+var viewer = new Cesium.Viewer('cesiumContainer');
+
+    var startLon = 50;
+    var startLat = 50;
+    var intervalLon = 0.1;
+    var intervalLat = 0.1;
+    var lowElevation = 50000;
+    var highElevation = 90000;
+    var lowColor = [30, 10, 244];
+    var highColor = [244, 40, 80];
+    var numLon = 100;
+    var numLat = 100;
+    var min = 40;
+    var max = 55;
+    var dur = 15;
+    var alpha = 0.6;
+
+    var diffElevation = highElevation - lowElevation;
+    var diffColor = [highColor[0] - lowColor[0], highColor[1] - lowColor[1], highColor[2] - lowColor[2]];
+
+    var positions = new Float64Array(numLon * numLat * 3);
+    var colors = new Uint8Array(numLon * numLat * 4);
+    var indices = new Uint16Array((numLon - 1) * (numLat - 1) * 6);
+    var index = 0;
+    var index_color = 0;
+    for (var i = 0; i < numLat; ++i) {
+      for (var j = 0; j < numLon; ++j) {
+        var randomValue = Math.random();
+        var coord = Cesium.Cartesian3.fromDegrees(startLon + i * intervalLon, startLat - j * intervalLat, lowElevation + randomValue * diffElevation);
+        var x = coord.x;
+        var y = coord.y;
+        var z = coord.z;
+
+        var p = min + randomValue * dur;
+
+          
+        viewer.entities.add({
+            position : coord,
+            point : {
+                pixelSize : 10,
+                color : getJetColor(p, min, max, alpha),
+                outlineColor : Cesium.Color.TRANSPARENT,
+                // pixelSize will multiply by the scale factor, so in this example the size will range from 50px (near) to 1px (far).
+                scaleByDistance : new Cesium.NearFarScalar(1.5e2, 5.0, 1.5e6, 0.1)
+            }
+        });
+      }
+    }
+
+
+
+// Jet color
+function getJetColor(v, vmin, vmax, alpha) {
+    if (v < vmin){
+        v = vmin;
+    }
+    if (v > vmax){
+        v = vmax;
+    }
+    var dv = vmax - vmin;
+
+    if (v < (vmin + 0.25 * dv)) {
+        return new Cesium.Color(0, 4 * (v - vmin) / dv, 0.6, alpha);
+    }
+    else if (v < (vmin + 0.5 * dv)) {
+        return new Cesium.Color(0, 1, 1 + 4 * (vmin + 0.25 * dv - v) / dv, alpha);
+    }
+    else if (v < (vmin + 0.75 * dv)) {
+        return new Cesium.Color(4 * (v - vmin - 0.5 * dv) / dv, 1, 0, alpha);
+    }
+    else {
+        return new Cesium.Color(1, 1 + 4 * (vmin + 0.75 * dv - v) / dv, 0, alpha);
+    }
+}
+//Sandcastle_End
+    Sandcastle.finishedLoading();
+}
+if (typeof Cesium !== 'undefined') {
+    startup(Cesium);
+} else if (typeof require === 'function') {
+    require(['Cesium'], startup);
+}
+</script>
+</body>
+</html>
