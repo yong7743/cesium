@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <meta name="description" content="Create 3D models using glTF.">
+    <meta name="cesium-sandcastle-labels" content="Tutorials,Showcases,New in 1.61">
+    <title>Cesium Demo</title>
+    <script type="text/javascript" src="../Sandcastle-header.js"></script>
+    <script type="text/javascript" src="../../../ThirdParty/requirejs-2.1.20/require.js"></script>
+    <script type="text/javascript">
+        if(typeof require === 'function') {
+            require.config({
+                baseUrl : '../../../Source',
+                waitSeconds : 120
+            });
+        }
+    </script>
+</head>
+<body class="sandcastle-loading" data-sandcastle-bucket="bucket-requirejs.html">
+<style>
+    @import url(../templates/bucket.css);
+</style>
+<div id="cesiumContainer" class="fullSize"></div>
+<div id="loadingOverlay"><h1>Loading...</h1></div>
+<div id="toolbar"></div>
+<script id="cesium_sandcastle_script">
+function startup(Cesium) {
+    'use strict';
+//Sandcastle_Begin
+    var viewer = new Cesium.Viewer('cesiumContainer');
+
+    var startLon = 50;
+    var startLat = 50;
+    var intervalLon = 0.1;
+    var intervalLat = 0.1;
+    var lowElevation = 50000;
+    var highElevation = 90000;
+    var lowColor = [30, 10, 244];
+    var highColor = [244, 40, 80];
+    var numLon = 100;
+    var numLat = 100;
+
+    var diffElevation = highElevation - lowElevation;
+    var diffColor = [highColor[0] - lowColor[0], highColor[1] - lowColor[1], highColor[2] - lowColor[2]];
+
+    var positions = new Float64Array(numLon * numLat * 3);
+    var colors = new Uint8Array(numLon * numLat * 4);
+    var indices = new Uint16Array((numLon - 1) * (numLat - 1) * 6);
+    var index = 0;
+    var index_color = 0;
+    for (var i = 0; i < numLat; ++i) {
+      for (var j = 0; j < numLon; ++j) {
+        var randomValue = Math.random();
+        var coord = Cesium.Cartesian3.fromDegrees(startLon + i * intervalLon, startLat - j * intervalLat, lowElevation + randomValue * diffElevation);
+        positions[index++] = coord.x;
+        positions[index++] = coord.y;
+        positions[index++] = coord.z;
+
+        colors[index_color++] = lowColor[0] + randomValue * diffColor[0];
+        colors[index_color++] = lowColor[1] + randomValue * diffColor[1];
+        colors[index_color++] = lowColor[2] + randomValue * diffColor[2];
+        colors[index_color++] = 160;
+      }
+    }
+
+    index = 0;
+    for (var i = 0; i < numLat - 1; ++i) {
+      for (var j = 0; j < numLon - 1; ++j) {
+        var leftTopIndex = i * numLon + j;
+        var rightTopIndex = leftTopIndex + 1;
+        var leftBottomIndex = (i + 1) * numLon + j;
+        var rightBottomIndex = leftBottomIndex + 1;
+        indices[index++] = leftTopIndex;
+        indices[index++] = leftBottomIndex;
+        indices[index++] = rightTopIndex;
+        indices[index++] = rightTopIndex;
+        indices[index++] = leftBottomIndex;
+        indices[index++] = rightBottomIndex;
+      }
+    }
+
+    var geometry = new Cesium.Geometry({
+      attributes: {
+        position: new Cesium.GeometryAttribute({
+          componentDatatype: Cesium.ComponentDatatype.DOUBLE,
+          componentsPerAttribute: 3,
+          values: positions
+        }),
+        color: new Cesium.GeometryAttribute({
+          componentDatatype: Cesium.ComponentDatatype.UNSIGNED_BYTE,
+          componentsPerAttribute: 4,
+          values: colors,
+          normalize: true
+        })
+      },
+      indices: indices,
+      primitiveType: Cesium.PrimitiveType.TRIANGLES,
+      boundingSphere: Cesium.BoundingSphere.fromVertices(positions)
+    });
+
+    var instance = new Cesium.GeometryInstance({
+      geometry: geometry
+    });
+    viewer.scene.primitives.add(new Cesium.Primitive({
+      asynchronous: false,
+      geometryInstances: instance,
+      appearance: new Cesium.Appearance({
+        renderState: {
+          blending: Cesium.BlendingState.PRE_MULTIPLIED_ALPHA_BLEND,
+          depthTest: { enabled: true },
+          depthMask: true
+        },
+        fragmentShaderSource: "varying vec4 v_color;\
+            void main()\
+            {\
+                gl_FragColor = v_color;\
+            }\
+            ",
+        vertexShaderSource: "attribute vec3 position3DHigh;\
+            attribute vec3 position3DLow;\
+            attribute vec4 color;\
+            varying vec4 v_color;\
+            attribute float batchId;\
+            void main()\
+            {\
+                vec4 p = czm_computePosition();\
+                v_color =color;\
+                p = czm_modelViewProjectionRelativeToEye * p;\
+                gl_Position = p;\
+            }\
+            "
+      }),
+    }));
+//Sandcastle_End
+    Sandcastle.finishedLoading();
+}
+if (typeof Cesium !== 'undefined') {
+    startup(Cesium);
+} else if (typeof require === 'function') {
+    require(['Cesium'], startup);
+}
+</script>
+</body>
+</html>
